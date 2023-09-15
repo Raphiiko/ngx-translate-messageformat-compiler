@@ -3,8 +3,8 @@ import { TranslateCompiler } from "@ngx-translate/core";
 import MessageFormat, { MessageFormatOptions } from "@messageformat/core";
 import {
   defaultConfig,
-  MessageFormatConfig,
   MESSAGE_FORMAT_CONFIG,
+  MessageFormatConfig,
 } from "./message-format-config";
 
 /**
@@ -43,7 +43,21 @@ export class TranslateMessageFormatCompiler extends TranslateCompiler {
   }
 
   public compile(value: string, lang: string): (params: any) => string {
-    return this.getMessageFormatInstance(lang).compile(value);
+    return (params) => {
+      try {
+        return this.getMessageFormatInstance(lang).compile(value)(params);
+      } catch (e) {
+        // Ignore this specific type of type error, as for some reason `undefined` is passed as parameter initially, even though that is not the case in the actual code.
+        const message =
+          typeof e === "object" ? (e as TypeError)?.message : null;
+        if (
+          typeof message === "string" &&
+          message.startsWith("Cannot read properties of undefined (reading '")
+        )
+          return "";
+        throw e;
+      }
+    };
   }
 
   public compileTranslations(translations: any, lang: string): any {
